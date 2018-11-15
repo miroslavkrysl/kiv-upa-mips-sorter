@@ -24,8 +24,6 @@ main__input_loop:
 
 	bne		$v1, 0, main__input_loop_error		# check the error return value (0 = OK)
 	
-	la		$a0, d_in_ok_msg
-	jal		f_print_line						# print error mesage
 
 	sw		$v0, 0($s0)							# save the read integer into the array
 	addi	$s0, $s0, 4							# increment the int array pointer
@@ -239,16 +237,16 @@ f_strhex_to_int:
 	li		$t0, 0								# for loading chars
 
 	# check whether the string starts with "0x"
-	lb		$t0, 0($a0)							# load first char
+	lb		$t0, 0($s0)							# load first char
 	li		$t1, '0'							# load char '0' for comparison
 	bne		$t0, $t1, strhex_to_int__tr_zeros	# if not beginning with "0"
 
-	lb		$t0, 1($a0)							# load second char
-	li		$t1, 'x'							# load char 'x' for comparison
-	bne		$t0, $t1, strhex_to_int__tr_zeros	# if not beginning with "0x"
+	lb		$t0, 1($s0)							# load second char
+	li		$t2, 'x'							# load char 'x' for comparison
+	bne		$t0, $t2, strhex_to_int__tr_zeros	# if not beginning with "0x"
 
 	# skip first two chars "0x"
-	li		$s0, 2								# set char pointer to third char
+	addi	$s0, $s0, 2							# set char pointer to third char
 
 strhex_to_int__tr_zeros:	
 	# skip trailing zeros
@@ -279,6 +277,7 @@ strhex_to_int__convert_loop:
 	ble		$t0, $t4, strhex_to_int__char_up	# <= 'F' an upper char
 	blt		$t0, $t5, strhex_to_int__fail		# < 'a' not a hex char
 	ble		$t0, $t6, strhex_to_int__char_low	# <= 'f' an upper char
+	j		strhex_to_int__fail					# > 'f' not a hex char
 
 strhex_to_int__digit:
 	sub		$t0, $t0, $t1						# value -= '0'
@@ -387,4 +386,5 @@ d_in_ok_msg:	.asciiz	"Ok"
 d_no_in_msg:	.asciiz	"Nebyla zadana zadna cisla."
 d_sorted_msg:	.asciiz	"Serazena cisla:"
 d_buffer:		.space	128
+	.align	2
 d_array:		.space	1024
