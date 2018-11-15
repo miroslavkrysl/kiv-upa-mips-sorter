@@ -3,9 +3,38 @@
 	
 	.globl	main
 main:
+	la		$s0, d_array						# init $s0 as int array pointer
+	li		$s1, 0								# init as array length
+
+	la		$a0, d_in_error_msg
+	jal		f_print_string						# print input prompt mesage
+	
+	la		$a0, d_newline
+	jal		f_print_string						# print newline
+
+input_loop:
+	la		$a0, d_buffer
+	la		$a1, 128							# buffer size
+	jal		f_read_line							# read line from input
+	
+	la		$a0, d_buffer
+	jal		f_str_len							# determine the string length, result in $v0
+	
+	beq		$v0, 0, input_loop_exit				# if $v0 = 0 -> blank line read
+
+	la		$a0, d_buffer
+	jal		f_strhex_to_int						# convert string to integer, result in $v0
+
+	beq		$v1, 0, input_loop_end				# check the error return value (0 = OK)
+
+
+
+input_loop_exit:
+
 	la		$a0, d_array
 	li		$a1, 9
 	jal		f_insert_sort
+	
 
 	# exit program
 exit:
@@ -91,7 +120,7 @@ str_len__exit:
 
 	# @function void read_line(char *dest_buffer, int buffer_size)
 	# @param dest_buffer $a0 - Read string destination address
-	# @param buffer_size $a1 - Buffer size (without the null-termination character)
+	# @param buffer_size $a1 - Buffer size
 	#
 	# Read string until the newline character occurs.
 	# If the buffer's max capacity is reached, end the reading and print
@@ -99,6 +128,7 @@ str_len__exit:
 f_read_line:
 	move	$t0, $a0							# this will serve as a buffer's next char pointer
 	add		$t1, $t0, $a1						# compute buffer's last usable address
+	addi	$t1, $t1, -1						# reserve the last address for the null-terminating character
 
 read_line__loop:
 	beq		$t0, $t1, read_line__max_reached	# buffer's max size reached
@@ -127,13 +157,19 @@ read_line__end_string:
 
 
 
-	# @function void print_string(char *source)
+	# @function void print_line(char *source)
 	# @param source $a0 - Printed string source address
 	#
-	# Print string from the source address.
-f_print_string:
+	# Print string from the source address, append the newline character
+	# to the end of the printed string.
+f_print_line:
 	li		$v0, 4								# print string syscall code = 8
 	syscall										# uses $a0, $a1 which are given as function arguments
+	
+	li		$v0, 11								# print char syscall code = 8
+	li		$a0, '\n'							# load '\n' for the print char syscall
+	syscall										# uses $a0, $a1 which are given as function arguments
+
 	jr		$ra									# jump back to caller
 
 
@@ -306,11 +342,8 @@ int_to_strhex__exit:
 	# Start .data segment (data!)
 	.data
 d_in_msg:		.asciiz	"Zadejte cisla v sestnactkove soustave (0xFFFFFFFF). Jednotliva cisla potvrdte entrem a po poslednim cisle entr stinsknete jeste jednou."
-d_bad_in_msg:	.asciiz	"Spatne zadane cislo:"
-d_out_msg:		.asciiz	"Serazena cisla:"
+d_in_error_msg:	.asciiz	"Spatne zadane cislo. Zkuste cislo zadat znovu:"
+d_sorted_msg:	.asciiz	"Serazena cisla:"
 d_newline:		.asciiz	"\n"
-d_buffer:		.space	16
-d_buffer2:		.space	16
-d_test_string:	.asciiz	"19afAFFf"
-d_test_int:		.word	1024
-d_array:		.word	7, 6, 2, 4, 5, 1, 8, 9, 3
+d_buffer:		.space	128
+d_array:		.space	1024
