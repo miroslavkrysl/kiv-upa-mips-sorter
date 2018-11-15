@@ -3,13 +3,12 @@
 	
 	.globl	main
 main:
-	la		$a0, d_buffer
-	li		$a1, 6
-	jal		f_read_line
+	lw		$a0, d_test_int
+	la		$a1, d_buffer
+	jal		f_int_to_strhex
 
-	la		$a0, d_buffer2
-	li		$a1, 6
-	jal		f_read_line
+	la		$a0, d_buffer
+	jal		f_print_string
 
 	# exit program
 exit:
@@ -199,7 +198,7 @@ strhex_to_int__exit:
 	lw		$s4, 16($sp)
 	addi	$sp, $sp, 20						# adjust stack pointer back to initial value
 
-	jr $ra										# jump back to caller
+	jr		$ra									# jump back to caller
 
 strhex_to_int__fail:
 	# not a hex char
@@ -211,12 +210,48 @@ strhex_to_int__fail:
 
 	# @function void int_to_strhex(int a, char *dest)
 	# @param a $a0 - An integer
-	# @param dest $a1 - String destination address
+	# @param dest $a1 - String destination address (min size = 11 including the null-terminating char)
 	#
-	# Convert the given integer into a hexadecimal number.
+	# Convert the given integer into a hexadecimal number string representation in the form "0x00FFAAFF".
 f_int_to_strhex:
-	nop											# todo: implement
-	jr $ra										# jump back to caller
+	move	$t0, $a0							# move integer to $t0
+	move	$t1, $a1							# init as the char pointer
+	li		$t2, 0								# clear $t2 for number to char computation
+	addi	$t3, $a1, 2							# set $t3 as a pointer to the first char of the number
+
+	li		$t4, '0'							# load char '0'
+	sb		$t4, 0($t1)							# store '0' into the string address
+	addi	$t1, $t1, 1							# increment the char pointer
+	li		$t4, 'x'							# load char 'x'
+	sb		$t4, 0($t1)							# store 'x' into the string address
+	
+	addi	$t1, $t1, 9							# set char pointer to the string end
+	li		$t4, 0								# load the null-terminating char to $t4
+	sb		$t4, 0($t1)							# terminate the string - save null char into the string end
+	
+	addi	$t1, $t1, -1						# decrement the char pointer
+
+int_to_strhex__loop:
+	andi	$t2, $t0, 15						# load first 4 bits (= 1 char) into the $t2
+
+	bge		$t2, 10, int_to_strhex__char		# 10 - 15 is char else 0 - 9 is digit
+	addi	$t2, $t2, '0'						# add char's '0' value to the number
+	j		int_to_strhex__end_loop
+
+int_to_strhex__char:
+	addi	$t2, $t2, 'A'						# add char's 'A' value to the number
+
+int_to_strhex__end_loop:
+	sb		$t2, 0($t1)							# store next char into the string
+
+	beq		$t1, $t3, int_to_strhex__exit		# the whole int was converted
+	
+	addi	$t1, $t1, -1						# decrement the char pointer
+	srl		$t0, $t0, 4							# shift the integer four bits (one char) right
+	j		int_to_strhex__loop
+
+int_to_strhex__exit:
+	jr 		$ra									# jump back to caller
 
 
 
@@ -227,6 +262,7 @@ d_in_msg:		.asciiz	"Zadejte cisla v sestnactkove soustave (0xFFFFFFFF). Jednotli
 d_bad_in_msg:	.asciiz	"Spatne zadane cislo:"
 d_out_msg:		.asciiz	"Serazena cisla:"
 d_newline:		.asciiz	"\n"
-d_buffer:		.space 16
-d_buffer2:		.space 16
-d_test_string:	.asciiz "19afAFFf"
+d_buffer:		.space	16
+d_buffer2:		.space	16
+d_test_string:	.asciiz	"19afAFFf"
+d_test_int:		.word	1024
