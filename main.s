@@ -6,13 +6,10 @@ main:
 	la		$s0, d_array						# init $s0 as int array pointer
 	li		$s1, 0								# init as array length
 
-	la		$a0, d_in_error_msg
-	jal		f_print_string						# print input prompt mesage
-	
-	la		$a0, d_newline
-	jal		f_print_string						# print newline
+	la		$a0, d_in_msg
+	jal		f_print_line						# print input prompt mesage
 
-input_loop:
+main__input_loop:
 	la		$a0, d_buffer
 	la		$a1, 128							# buffer size
 	jal		f_read_line							# read line from input
@@ -20,21 +17,63 @@ input_loop:
 	la		$a0, d_buffer
 	jal		f_str_len							# determine the string length, result in $v0
 	
-	beq		$v0, 0, input_loop_exit				# if $v0 = 0 -> blank line read
+	beq		$v0, 0, main__input_loop_exit		# if $v0 = 0 -> blank line read
 
 	la		$a0, d_buffer
 	jal		f_strhex_to_int						# convert string to integer, result in $v0
 
-	beq		$v1, 0, input_loop_end				# check the error return value (0 = OK)
-
-
-
-input_loop_exit:
-
-	la		$a0, d_array
-	li		$a1, 9
-	jal		f_insert_sort
+	bne		$v1, 0, main__input_loop_error		# check the error return value (0 = OK)
 	
+	la		$a0, d_in_ok_msg
+	jal		f_print_line						# print error mesage
+
+	sw		$v0, 0($s0)							# save the read integer into the array
+	addi	$s0, $s0, 4							# increment the int array pointer
+	addi	$s1, $s1, 1							# increment the array length
+
+	j		main__input_loop
+
+main__input_loop_error:
+	la		$a0, d_in_error_msg
+	jal		f_print_line						# print error mesage
+
+	j		main__input_loop
+
+main__input_loop_exit:
+	bne		$s1, 0, main__sort					# check if some integers given
+
+	la		$a0, d_no_in_msg
+	jal		f_print_line						# print no integers given error mesage
+
+	j		exit
+
+main__sort:
+	la		$a0, d_array
+	move	$a1, $s1 
+	jal		f_insert_sort						# sort the integers
+
+	la		$s0, d_array						# ser $s0 as int array pointer
+	
+	# compute last item adress
+	li		$s2, 4								# load int size = 4 for multiplication
+	move	$t0, $s1							# load array size
+	addi	$t0, $t0, -1						# decrement array size by one
+	mult	$s2, $t0							# multiply array size by int size
+	mflo	$s2									# move multiplication result (array range in bytes)
+	add		$s2, $s2, $s0						# add first item addres to array range (in bytes) = last item adress
+
+main__print_loop:
+	lw		$a0, 0($s0)
+	la		$a1, d_buffer
+	jal		f_int_to_strhex						# convert integer to hex string
+
+	la		$a0, d_buffer
+	jal		f_print_line						# print integer
+
+	addi	$s0, $s0, 4							# increment int array pointer
+
+	bgt		$s0, $s2, exit						# array pointer out of range
+	j		main__print_loop
 
 	# exit program
 exit:
@@ -104,14 +143,15 @@ f_str_len:
 	li		$t1, 0								# initialize the char counter
 
 str_len__loop:
-	beq		$t0, 0, str_len__exit				# null-termination character reached
+	lb		$t2, 0($t0)
+	beq		$t2, 0, str_len__exit				# null-termination character reached
 	addi	$t0, 1								# increment char pointer
 	addi	$t1, 1								# increment char counter
 
 	j		str_len__loop
 
 str_len__exit:
-	move	$t1, $v0							# move char count to the return register $v0
+	move	$v0, $t1							# move char count to the return register $v0
 	
 	jr		$ra									# jump back to caller
 
@@ -168,7 +208,7 @@ f_print_line:
 	
 	li		$v0, 11								# print char syscall code = 8
 	li		$a0, '\n'							# load '\n' for the print char syscall
-	syscall										# uses $a0, $a1 which are given as function arguments
+	syscall										# print '\n'
 
 	jr		$ra									# jump back to caller
 
@@ -343,7 +383,8 @@ int_to_strhex__exit:
 	.data
 d_in_msg:		.asciiz	"Zadejte cisla v sestnactkove soustave (0xFFFFFFFF). Jednotliva cisla potvrdte entrem a po poslednim cisle entr stinsknete jeste jednou."
 d_in_error_msg:	.asciiz	"Spatne zadane cislo. Zkuste cislo zadat znovu:"
+d_in_ok_msg:	.asciiz	"Ok"
+d_no_in_msg:	.asciiz	"Nebyla zadana zadna cisla."
 d_sorted_msg:	.asciiz	"Serazena cisla:"
-d_newline:		.asciiz	"\n"
 d_buffer:		.space	128
 d_array:		.space	1024
