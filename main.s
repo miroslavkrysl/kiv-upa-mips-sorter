@@ -19,6 +19,30 @@ exit:
 
 
 
+	# @function int str_len(char *src)
+	# @param src $a0 - String source address
+	# @return $v0 - String length without the null-terminated character
+	#
+	# Compute the string length.
+f_str_len:
+	move	$t0, $a0							# initialize the char pointer
+	li		$t1, 0								# initialize the char counter
+
+str_len__loop:
+	beq		$t0, 0, str_len__exit				# null-termination character reached
+	addi	$t0, 1								# increment char pointer
+	addi	$t1, 1								# increment char counter
+
+	j		str_len__loop
+
+str_len__exit:
+	move	$t1, $v0							# move char count to the return register $v0
+	
+	jr		$ra									# jump back to caller
+
+
+
+
 	# @function void read_line(char *dest_buffer, int buffer_size)
 	# @param dest_buffer $a0 - Read string destination address
 	# @param buffer_size $a1 - Buffer size (without the null-termination character)
