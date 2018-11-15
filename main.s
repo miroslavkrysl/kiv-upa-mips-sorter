@@ -24,7 +24,6 @@ main__input_loop:
 
 	bne		$v1, 0, main__input_loop_error		# check the error return value (0 = OK)
 	
-
 	sw		$v0, 0($s0)							# save the read integer into the array
 	addi	$s0, $s0, 4							# increment the int array pointer
 	addi	$s1, $s1, 1							# increment the array length
@@ -362,6 +361,7 @@ int_to_strhex__loop:
 
 int_to_strhex__char:
 	addi	$t2, $t2, 'A'						# add char's 'A' value to the number
+	addi	$t2, $t2, -10						# subtract 10 from the value
 
 int_to_strhex__loop_end:
 	sb		$t2, 0($t1)							# store next char into the string
