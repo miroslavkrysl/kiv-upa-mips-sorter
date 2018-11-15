@@ -3,17 +3,64 @@
 	
 	.globl	main
 main:
-	lw		$a0, d_test_int
-	la		$a1, d_buffer
-	jal		f_int_to_strhex
-
-	la		$a0, d_buffer
-	jal		f_print_string
+	la		$a0, d_array
+	li		$a1, 9
+	jal		f_insert_sort
 
 	# exit program
 exit:
 	li		$v0, 10								# exit syscall code = 10
 	syscall
+
+
+
+
+	# @function void insert_sort(int *array, int size)
+	# @param array $a0 - Int array pointer
+	# @param size $a1 - Array size
+	#
+	# Sort the array of integers in the ascending order using the insertion sort algorithm.
+f_insert_sort:
+	blt		$a1, 2, insert_sort__exit			# if size of the array < 2, then already sorted
+
+	move	$t0, $a0							# set $t4 as the first item pointer
+
+	# compute last item adress
+	li		$t1, 4								# load int size = 4 for multiplication
+	move	$t2, $a1							# load array size
+	addi	$t2, $t2, -1						# decrement array size by one
+	mult	$t1, $t2							# multiply array size by int size
+	mflo	$t1									# move multiplication result (array range in bytes)
+	add		$t1, $t1, $t0						# add first item addres to array range (in bytes) = last item adress
+	
+	move	$t2, $a0							# initialize the outer loop pointer - pivot int
+	addi	$t2, $t2, 4							# set the outer pointer to the second item
+insert_sort__out_loop:
+	lw		$t4, 0($t2)							# load pivot int
+
+	move	$t3, $t2							# initialize the inner loop pointer - comparing int
+	addi	$t3, $t3, -4						# set the comparing int pointer one item left of the pivot int
+insert_sort__in_loop:
+	lw		$t5, 0($t3)							# load comparing int
+	bgt		$t4, $t5, insert_sort__out_loop_end	# pivot int is greater than comparing int -> break inner loop
+	
+	sw		$t5, 4($t3)							# store comparing int one position right
+	addi	$t3, $t3, -4						# decrement the comparing int pointer
+
+	blt		$t3, $t0, insert_sort__out_loop_end	# comparing int pointer is out of range
+
+	j		insert_sort__in_loop
+
+insert_sort__out_loop_end:
+	sw		$t4, 4($t3)							# store pivot into it's right position
+	
+	addi	$t2, $t2, 4							# increment the pivot int pointer
+	bgt		$t2, $t1, insert_sort__exit			# pivot int pointer is out of range
+
+	j		insert_sort__out_loop
+
+insert_sort__exit:
+	jr		$ra									# jump back to caller
 
 
 
@@ -236,12 +283,12 @@ int_to_strhex__loop:
 
 	bge		$t2, 10, int_to_strhex__char		# 10 - 15 is char else 0 - 9 is digit
 	addi	$t2, $t2, '0'						# add char's '0' value to the number
-	j		int_to_strhex__end_loop
+	j		int_to_strhex__loop_end
 
 int_to_strhex__char:
 	addi	$t2, $t2, 'A'						# add char's 'A' value to the number
 
-int_to_strhex__end_loop:
+int_to_strhex__loop_end:
 	sb		$t2, 0($t1)							# store next char into the string
 
 	beq		$t1, $t3, int_to_strhex__exit		# the whole int was converted
@@ -266,3 +313,4 @@ d_buffer:		.space	16
 d_buffer2:		.space	16
 d_test_string:	.asciiz	"19afAFFf"
 d_test_int:		.word	1024
+d_array:		.word	7, 6, 2, 4, 5, 1, 8, 9, 3
