@@ -1,14 +1,15 @@
-# Simple input/output in MIIPS assembly
-# From: http://labs.cs.upt.ro/labs/so2/html/resources/nachos-doc/mipsf.html
-
 	# Start .text segment (program code)
 	.text
 	
 	.globl	main
 main:
-	la		$a0, d_buffer						# read destination address
-	li		$a1, 10								# read destination address
-	jal		f_read_string
+	la		$a0, d_buffer
+	li		$a1, 6
+	jal		f_read_line
+
+	la		$a0, d_buffer2
+	li		$a1, 6
+	jal		f_read_line
 
 	# exit program
 exit:
@@ -16,27 +17,43 @@ exit:
 	syscall
 
 
-	# @function int read_hex()
-	# @return $v0 An integer
-	# @return $v1 0 on success, 1 on error
+
+
+	# @function void read_line(char *dest_buffer, int buffer_size)
+	# @param dest_buffer $a0 - Read string destination address
+	# @param buffer_size $a1 - Buffer size (without the null-termination character)
 	#
-	# Read a string representation of a hexadecimal number from the input
-	# and convert it to an integer of max size 32 bits.
-f_read_hex:
-	nop		# todo: implement
-	jr		$ra									# jump back to caller	
+	# Read string until the newline character occurs.
+	# If the buffer's max capacity is reached, end the reading and print
+	# the new line char to indicate that the reading was terminated.
+f_read_line:
+	move	$t0, $a0							# this will serve as a buffer's next char pointer
+	add		$t1, $t0, $a1						# compute buffer's last usable address
 
+read_line__loop:
+	beq		$t0, $t1, read_line__max_reached	# buffer's max size reached
+	
+	li		$v0, 12								# read char syscall code = 8
+	syscall										# read char is stored in $v0
+	
+	beq		$v0, '\n', read_line__end_string	# end line reached
+	
+	sb		$v0, 0($t0)							# store char into the buffer
+	addi	$t0, $t0, 1							# update the buffer's next char pointer
 
+	j		read_line__loop
+		
+read_line__max_reached:
+	li		$a0, '\n'							# load new line char as an arg for the print char syscall
+	li		$v0, 11								# print char syscall code = 11
+	syscall										# print the new line to indicate that the reading was terminated
 
-	# @function void read_string(char *dest, int n)
-	# @param dest $a0 - Read string destination address
-	# @param n $a1 - Number of chars to be read
-	#
-	# Read string of lenght n into the destination address.
-f_read_string:
-	li		$v0, 8								# read string syscall code = 8
-	syscall										# uses $a0, $a1 which are given as function arguments
+read_line__end_string:
+	li		$t2, 0								# load null-terminating char to $t2
+	sb		$t2, 0($t0)							# terminate the string - save null char into the buffer
+	
 	jr		$ra									# jump back to caller
+
 
 
 
@@ -48,6 +65,7 @@ f_print_string:
 	li		$v0, 4								# print string syscall code = 8
 	syscall										# uses $a0, $a1 which are given as function arguments
 	jr		$ra									# jump back to caller
+
 
 
 
@@ -166,6 +184,7 @@ strhex_to_int__fail:
 
 
 
+
 	# @function void int_to_strhex(int a, char *dest)
 	# @param a $a0 - An integer
 	# @param dest $a1 - String destination address
@@ -177,11 +196,13 @@ f_int_to_strhex:
 
 
 
+
 	# Start .data segment (data!)
 	.data
 d_in_msg:		.asciiz	"Zadejte cisla v sestnactkove soustave (0xFFFFFFFF). Jednotliva cisla potvrdte entrem a po poslednim cisle entr stinsknete jeste jednou."
 d_bad_in_msg:	.asciiz	"Spatne zadane cislo:"
 d_out_msg:		.asciiz	"Serazena cisla:"
 d_newline:		.asciiz	"\n"
-d_buffer:		.space 128
+d_buffer:		.space 16
+d_buffer2:		.space 16
 d_test_string:	.asciiz "19afAFFf"
