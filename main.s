@@ -1,3 +1,16 @@
+	# @program main.s
+	# @author Miroslav Krysl
+	# @date 15-11-2018
+	# 
+	# Simple integer sorting program in MIPS architecture instructions
+	# using QtSpim simulator syscalls.
+	# 
+	# User is promted for entering integer numbers in hexadecimal format
+	# into the console. Program convert these numbers into the binary
+	# representation and save them into the memory. Numbers are sorted
+	# using the insertion sort algorithm, converted back to string
+	# representation in hexadecimal format and than printed back to the console.
+	
 	# Start .text segment (program code)
 	.text
 	
@@ -49,8 +62,11 @@ main__sort:
 	move	$a1, $s1 
 	jal		f_insert_sort						# sort the integers
 
-	la		$s0, d_array						# ser $s0 as int array pointer
+	la		$a0, d_sorted_msg
+	jal		f_print_line						# print sorted mesage
 	
+	la		$s0, d_array						# set $s0 as int array pointer
+
 	# compute last item adress
 	li		$s2, 4								# load int size = 4 for multiplication
 	move	$t0, $s1							# load array size
@@ -380,7 +396,7 @@ int_to_strhex__exit:
 
 	# Start .data segment (data!)
 	.data
-d_in_msg:		.asciiz	"Zadejte cisla v sestnactkove soustave (0xFFFFFFFF). Jednotliva cisla potvrdte entrem a po poslednim cisle entr stinsknete jeste jednou."
+d_in_msg:		.asciiz	"Zadejte cisla v sestnactkove soustave. Jednotliva cisla potvrdte entrem a po poslednim cisle entr stinsknete jeste jednou."
 d_in_error_msg:	.asciiz	"Spatne zadane cislo. Zkuste cislo zadat znovu:"
 d_in_ok_msg:	.asciiz	"Ok"
 d_no_in_msg:	.asciiz	"Nebyla zadana zadna cisla."
